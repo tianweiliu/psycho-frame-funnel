@@ -9,6 +9,7 @@
         <SolidColorBrush x:Key="MediumGreyBrush" Color="#ff6e6e6e" />
         <SolidColorBrush x:Key="KinectPurpleBrush" Color="#ff52318f" />
         <SolidColorBrush x:Key="KinectBlueBrush" Color="#ff00BCF2" />
+        <CollectionViewSource x:Key="ItemCollectionViewSource"  CollectionViewType="ListCollectionView"/>
     </Window.Resources>
     <Grid Margin="10 0 10 0">
         <Grid.RowDefinitions>
@@ -25,26 +26,17 @@
         <Viewbox Grid.Row="1" HorizontalAlignment="Center">
             <Image Source="{Binding ImageSource}" Stretch="UniformToFill" />
         </Viewbox>
-        <Grid Grid.Row="2" HorizontalAlignment="Center" Name="oscBar" VerticalAlignment="Center" Margin="10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Label Grid.Column="0" Grid.Row="0" Content="IP Address:" Margin="10 0" />
-            <Label Grid.Column="1" Grid.Row="0" Content="Port:" Margin="10 0" />
-            <Label Grid.Column="2" Grid.Row="0" Content="Identifier:" Margin="10 0" />
-            <Label Grid.Column="3" Grid.Row="0" Content="{Binding OSC_STATUS}" Margin="10 0" />
-            <TextBox x:Name="txtOscIP" Grid.Column="0" Grid.Row="1" Text="{Binding OSC_IP}" />
-            <TextBox x:Name="txtOscPort" Grid.Column="1" Grid.Row="1" Text="{Binding OSC_PORT}" />
-            <TextBox x:Name="txtOscIdentifier" Grid.Column="2" Grid.Row="1" Text="{Binding OSC_IDENTIFIER}" />
-            <CheckBox Grid.Column="3" Grid.Row="1" Content="Send Data" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Margin="10 0" />
-        </Grid>
+        <DataGrid x:Name="oscServers" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10" 
+                  ItemsSource="{Binding oscConnectionList}" 
+                  AutoGenerateColumns="False" CanUserResizeRows="False" CanUserAddRows="True" CanUserDeleteRows="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="IP Address" Binding="{Binding IP, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+                <DataGridTextColumn Header="Port" Binding="{Binding Port, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+                <DataGridTextColumn Header="Identifier" Binding="{Binding Identifier, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+                <DataGridCheckBoxColumn Header="Connection" Binding="{Binding OscConnect, NotifyOnTargetUpdated=True, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
         <StatusBar Grid.Row="3" HorizontalAlignment="Stretch" Name="statusBar" VerticalAlignment="Bottom" Background="White" Foreground="{StaticResource MediumGreyBrush}">
             <StatusBarItem Content="{Binding StatusText}" />
         </StatusBar>

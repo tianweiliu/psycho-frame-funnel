@@ -17,6 +17,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
     using Ventuz.OSC;
+    using System.Collections.ObjectModel;
+    using System.Windows.Data;
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -128,36 +130,15 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private string statusText = null;
 
-        /// <summary>
-        /// IP address that OSC broadcasts to
-        /// </summary>
-        private string oscIP = "127.0.0.1";
-
-        /// <summary>
-        /// Port that OSC broadcasts to
-        /// </summary>
-        private int oscPort = 12000;
-
-        /// <summary>
-        /// OSC identifier
-        /// </summary>
-        private string oscIdentifier = "Front";
-
-        /// <summary>
-        /// OSC status
-        /// </summary>
-        private string oscStatus = "OSC Offline";
-
-        /// <summary>
-        /// OSC UdpWriter instance
-        /// </summary>
-        private UdpWriter oscUdpWriter = null;
+        public ObservableCollection<OscConnection> oscConnectionList { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
+            //link oscConnectionList data to CollectionViewSource
+            oscConnectionList = new ObservableCollection<OscConnection>();
 
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
@@ -287,129 +268,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         }
 
         /// <summary>
-        /// Gets or sets the osc target ip address
-        /// </summary>
-        public string OSC_IP
-        {
-            get
-            {
-                return this.oscIP;
-            }
-            set
-            {
-                if (this.oscIP != value)
-                {
-                    this.oscIP = value;
-                    if (this.oscUdpWriter != null)
-                        this.InitOscUdpWriter();
-                    // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("OSC_IP"));
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the osc target port
-        /// </summary>
-        public int OSC_PORT
-        {
-            get
-            {
-                return this.oscPort;
-            }
-            set
-            {
-                if (this.oscPort != value)
-                {
-                    this.oscPort = value;
-                    if (this.oscUdpWriter != null)
-                        this.InitOscUdpWriter();
-                    // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("OSC_PORT"));
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the osc identifier
-        /// </summary>
-        public string OSC_IDENTIFIER
-        {
-            get
-            {
-                return this.oscIdentifier;
-            }
-            set
-            {
-                if (this.oscIdentifier != value)
-                {
-                    this.oscIdentifier = value;
-                    // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("OSC_IDENTIFIER"));
-                    }
-                }
-            }
-        }
-
-         /// <summary>
-        /// Gets or sets the osc status
-        /// </summary>
-        public string OSC_STATUS
-        {
-            get
-            {
-                return this.oscStatus;
-            }
-            set
-            {
-                if (this.oscStatus != value)
-                {
-                    this.oscStatus = value;
-                    // notify any bound elements that the text has changed
-                    if (this.PropertyChanged != null)
-                    {
-                        this.PropertyChanged(this, new PropertyChangedEventArgs("OSC_STATUS"));
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Initiate OSC UdpWriter
-        /// </summary>
-        private void InitOscUdpWriter()
-        {
-            if (this.oscUdpWriter != null)
-                this.ResetOscUdpWriter();
-            if (oscIP != null && oscIP != "" && oscPort > 0)
-            {
-                oscUdpWriter = new UdpWriter(oscIP, oscPort);
-                this.OSC_STATUS = "OSC @ " + oscIP + ":" + oscPort.ToString();
-            }
-        }
-
-        /// <summary>
-        /// Reset OSC UdpWriter
-        /// </summary>
-        private void ResetOscUdpWriter()
-        {
-            if (this.oscUdpWriter != null)
-            {
-                this.oscUdpWriter.Dispose();
-                this.oscUdpWriter = null;
-                this.OSC_STATUS = "OSC Offline";
-            }
-        }
-
-        /// <summary>
         /// Execute start up tasks
         /// </summary>
         /// <param name="sender">object sending the event</param>
@@ -441,8 +299,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 this.kinectSensor.Close();
                 this.kinectSensor = null;
             }
-
-            this.ResetOscUdpWriter();
         }
 
         /// <summary>
@@ -480,16 +336,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                     int penIndex = 0;
 
-                    OscBundle oscBundle = null;
-                    if (oscUdpWriter != null)
-                        oscBundle = new OscBundle(DateTime.Now);
-
-                    string oscAddress = "/" + kinectSensor.UniqueKinectId;
-                    if (oscIdentifier != null)
-                        if (oscIdentifier != "")
-                            oscAddress = "/" + oscIdentifier;
-
                     int bodyIndex = 0;
+                    OscBundle oscBundle = new OscBundle(DateTime.Now);
 
                     foreach (Body body in this.bodies)
                     {
@@ -518,25 +366,31 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                 }
 
                                 // add all joints data to osc bundle
-                                OscElement oscElement = null;
-                                if (oscUdpWriter != null)
-                                {
-                                    Object[] args = new Object[10];
-                                    args[0] = bodyIndex;
-                                    args[1] = (int)jointType;
-                                    args[2] = position.X;
-                                    args[3] = position.Y;
-                                    args[4] = position.Z;
-                                    args[5] = body.JointOrientations[jointType].Orientation.X;
-                                    args[6] = body.JointOrientations[jointType].Orientation.Y;
-                                    args[7] = body.JointOrientations[jointType].Orientation.Z;
-                                    args[8] = body.JointOrientations[jointType].Orientation.W;
-                                    args[9] = (int)joints[jointType].TrackingState;
-                                    oscElement = new OscElement(oscAddress, args);
-                                    // JointType: https://msdn.microsoft.com/en-us/library/microsoft.kinect.jointtype.aspx
+                                Object[] args = new Object[10];
+                                args[0] = bodyIndex;
+                                args[1] = (int)jointType;
+                                args[2] = position.X;
+                                args[3] = position.Y;
+                                args[4] = position.Z;
+                                args[5] = body.JointOrientations[jointType].Orientation.X;
+                                args[6] = body.JointOrientations[jointType].Orientation.Y;
+                                args[7] = body.JointOrientations[jointType].Orientation.Z;
+                                args[8] = body.JointOrientations[jointType].Orientation.W;
+                                args[9] = (int)joints[jointType].TrackingState;
+                                // JointType: https://msdn.microsoft.com/en-us/library/microsoft.kinect.jointtype.aspx
 
-                                    oscUdpWriter.Send(oscElement);
-                                    oscBundle.AddElement(oscElement);
+                                foreach (OscConnection oscConnection in oscConnectionList)
+                                {
+                                    if (oscConnection.OscUdpWriter != null)
+                                    {
+                                        string oscAddress = "/" + kinectSensor.UniqueKinectId;
+                                        if (oscConnection.Identifier != null)
+                                            if (oscConnection.Identifier != "")
+                                                oscAddress = "/" + oscConnection.Identifier;
+                                        OscElement oscElement = new OscElement(oscAddress, args);
+                                        oscConnection.OscUdpWriter.Send(oscElement);
+                                        oscBundle.AddElement(oscElement);
+                                    }
                                 }
 
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
@@ -705,16 +559,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // on failure, set the status text
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
-        }
-
-        private void CheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-            this.InitOscUdpWriter();
-        }
-
-        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            this.ResetOscUdpWriter();
         }
     }
 }
